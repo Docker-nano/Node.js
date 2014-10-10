@@ -1,0 +1,34 @@
+language: c
+
+env:
+  global:
+    - ROOTFS="$HOME/buildroot/output/images/rootfs.tar.xz"
+    - secure: LalumHtS/EfM6KuHqDIap8jT4RZReMn4jxJvsodtMasXyDFKieBJrJxWlhpF3Irj1ul06B6IX5sQu49AwRqwmrnB7mNXjKZG8Sp4FsE9u5RFy1DLjdw74oQJ2pD987aJj5w2AGR1fVzvISPkMg/xTtO5dEcABg/DSauknFiyBgE=
+
+branches:
+  except: /^product/
+
+install:
+  #- sudo ./.travis.bash
+
+script:
+  #- sudo buildroot
+  - sudo mkdir -p "$(dirname "$ROOTFS")"
+  - date | sudo tee "$ROOTFS"
+  - '[[ -r $ROOTFS ]]'
+  #- '[[ $(tar tf "$ROOTFS" | head -1) = ./ ]]'
+  #- (( $(tar tf "$ROOTFS" | wc -l) > 50 ))
+
+after_success:
+  - cp -al product newproduct
+  - cd newproduct
+  - cp -fl "$ROOTFS" .
+  - git init
+  - git config user.name Travis
+  - git config user.email bilge+travis@scriptfusion.com
+  - git checkout -b product/"$TRAVIS_BRANCH"
+  - git remote add origin https://"$GITHUB_OAUTH":@github.com/"$TRAVIS_REPO_SLUG"
+  - git pull --ff-only
+  - git add .
+  - git commit -m 'Updated product.'
+  - git push --mirror
