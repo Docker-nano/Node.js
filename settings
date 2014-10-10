@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Name of local Docker image.
+NANO_IMAGE=dockernano/node.js
+
+# Name of local Docker container.
+NANO_CONTAINER=Buildroot-Node.js
