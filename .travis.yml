@@ -12,7 +12,7 @@ install:
 
 script:
   - |
-    (cd ~/buildroot && sudo make 2>~/error.log) | tee ~/build.log |
+    (cd ~/buildroot && sudo make defconfig BR2_DEFCONFIG=.config && sudo make 2>~/error.log) | tee ~/build.log |
     # Filter log to avoid tripping Travis log limits (10K lines/4MB) or stalling due to timeout (10 minutes).
     # We use pcregrep instead of grep -P because grep treats newlines in patterns as multiple patterns.
     pcregrep -v '(?x)
@@ -26,7 +26,8 @@ script:
         # Make spam.
         |[Mm]aking|\s*(cp|rm|mv|ln|mkdir|chmod|echo|touch|sed|-e|/usr/bin/install)|install-info
       )\b
-      |^make\[\d\]:
+      |^make\[.\]:
+
       # Script fragments.
       |^\s+[{}<>|]\s
     '
