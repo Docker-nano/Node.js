@@ -1,36 +1,24 @@
+notifications:
+  email: false
+
 language: generic
 
-env:
-  global: ROOTFS="$HOME/buildroot/output/images/rootfs.tar.xz"
+# Node.js requires GCC 4.8.
+sudo: required
+dist: trusty
+
+env: ROOTFS="$TRAVIS_BUILD_DIR/product/rootfs.tar.xz"
 
 branches:
   except: /^product/
 
-install:
-  - sudo ./.travis.bash
-  - sudo apt-get install -y pcregrep
-
 script:
+  - ./nano build container
   - |
-    (cd ~/buildroot && sudo make defconfig BR2_DEFCONFIG=.config && sudo make 2>~/error.log) | tee ~/build.log |
-    # Filter log to avoid tripping Travis log limits (10K lines/4MB) or stalling due to timeout (10 minutes).
-    # We use pcregrep instead of grep -P because grep treats newlines in patterns as multiple patterns.
-    pcregrep -v '(?x)
-      ^(
-        # General spam.
-        Creating\ directory|Listing|Compiling|copying|changing\ mode|libtool|installing|patching
-
-        # Configure spam.
-        |[Cc]hecking|configure|config.status
-
-        # Make spam.
-        |[Mm]aking|\s*(cp|rm|mv|ln|mkdir|chmod|echo|touch|sed|-e|/usr/bin/install)|install-info
-      )\b
-      |^make\[.\]:
-
-      # Script fragments.
-      |^\s+[{}<>|]\s
-    '
+    while true; do sleep 60; echo Building...; done &
+    ./nano build rootfs 2>~/error.log | tee ~/build.log | grep '^\S*>>>\s'
+    kill $!
+  - ./nano pull rootfs
 
   # Test rootfs readable.
   - '[[ -r $ROOTFS ]]'
@@ -42,13 +30,19 @@ script:
   - (( $(tar tf "$ROOTFS" | grep -Fxce ./usr/bin/node -e ./usr/bin/npm) == 2 ))
 
 after_failure:
-  - tail -30 ~/error.log
-  - tail -30 ~/build.log
+  - tail -50 ~/error.log
+  - tail -50 ~/build.log
 
 after_success:
   # Decrypt Git credentials file.
-  - openssl aes-256-cbc -K $encrypted_483128c148f7_key -iv $encrypted_483128c148f7_iv
-    -in .git-credentials.enc -out ~/.git-credentials -d
+  - |
+    (
+      for var in "${!encrypted_@}"; do
+        [[ $var = *_key ]] && key=${!var}
+        [[ $var = *_iv ]] && iv=${!var}
+      done
+      openssl aes-256-cbc -K "$key" -iv "$iv" -in .git-credentials.enc -out ~/.git-credentials -d
+    )
 
   # Work in new directory.
   - mkdir -v newproduct && cd $_
@@ -65,7 +59,7 @@ after_success:
   - git pull --depth=1 origin "${branch=product/"$TRAVIS_BRANCH"}"
 
   # Copy rootfs and product skeleton.
-  - cp -fl "$ROOTFS" ../product/* .
+  - cp -fl ../product/* .
 
   # Push modified product files.
   - git add .;

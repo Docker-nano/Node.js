@@ -4,10 +4,10 @@ Nano Node.js with npm
 [![Build status][Build image]][Build]
 
 This is the [Docker](http://docker.com) [Nano](https://github.com/Docker-nano) image for [Node.js](http://nodejs.org)
-v0.10.30 with [npm](http://npmjs.org) v1.4.21 support.
+v6.7.0 with [npm](http://npmjs.org) v&lt;BROKEN> support.
 
 * Docker Hub image: [`nano/node.js`](https://registry.hub.docker.com/u/nano/node.js/)
-* Size: ~14MB
+* Size: ~26MB
 
 Usage
 -----
