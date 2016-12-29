@@ -7,17 +7,25 @@ language: generic
 sudo: required
 dist: trusty
 
-env: ROOTFS="$TRAVIS_BUILD_DIR/product/rootfs.tar.xz"
+env: ROOTFS="$TRAVIS_BUILD_DIR/product/rootfs.tar.xz" PRODUCT=product
 
 branches:
   except: /^product/
 
+before_script:
+  - |
+    keep-alive() {
+      while true; do
+        sleep 60
+        echo Building...
+      done &
+    }
+
 script:
   - ./nano build container
-  - |
-    while true; do sleep 60; echo Building...; done &
-    ./nano build rootfs 2>~/error.log | tee ~/build.log | grep '^\S*>>>\s'
-    kill $!
+  - keep-alive &&
+    ./nano build rootfs 2>~/error.log > >(tee ~/build.log | grep '^\S*>>>\s')
+  - kill $! # keep-alive
   - ./nano pull rootfs
 
   # Test rootfs readable.
@@ -29,9 +37,19 @@ script:
   # Test rootfs contains node and npm binaries.
   - (( $(tar tf "$ROOTFS" | grep -Fxce ./usr/bin/node -e ./usr/bin/npm) == 2 ))
 
+  # Import product image.
+  - docker build -t "$PRODUCT" product
+
+  # Test Node.
+  - docker run --rm "$PRODUCT" node -v
+  - '[[ $(docker run --rm "$PRODUCT" node -e ''console.log("foo")'') = foo ]]'
+
+  # Test NPM.
+  - docker run --rm "$PRODUCT" npm
+
 after_failure:
-  - tail -50 ~/error.log
-  - tail -50 ~/build.log
+  - tail -30 ~/error.log
+  - tail -30 ~/build.log
 
 after_success:
   # Decrypt Git credentials file.
