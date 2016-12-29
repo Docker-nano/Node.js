@@ -45,7 +45,7 @@ script:
   - '[[ $(docker run --rm "$PRODUCT" node -e ''console.log("foo")'') = foo ]]'
 
   # Test NPM.
-  - docker run --rm "$PRODUCT" npm
+  - docker run --rm "$PRODUCT" npm -v
 
 after_failure:
   - tail -30 ~/error.log
