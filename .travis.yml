@@ -22,7 +22,7 @@ before_script:
     }
 
 script:
-  - ./nano build container
+  - ./nano build image
   - keep-alive &&
     ./nano build rootfs 2>~/error.log > >(tee ~/build.log | grep '^\S*>>>\s')
   - kill $! # keep-alive
