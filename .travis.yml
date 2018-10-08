@@ -3,14 +3,7 @@ notifications:
 
 language: generic
 
-# Node.js requires GCC 4.8.
-sudo: required
-dist: trusty
-
 env: ROOTFS="$TRAVIS_BUILD_DIR/product/rootfs.tar.xz" PRODUCT=product
-
-branches:
-  except: /^product/
 
 before_script:
   - |
@@ -23,8 +16,8 @@ before_script:
 
 script:
   - ./nano build image
-  - keep-alive &&
-    ./nano build rootfs 2>~/error.log > >(tee ~/build.log | grep '^\S*>>>\s')
+  - keep-alive
+  - ./nano build rootfs 2>~/error.log > >(tee ~/build.log | grep '^\S*>>>\s')
   - kill $! # keep-alive
   - ./nano pull rootfs
 
