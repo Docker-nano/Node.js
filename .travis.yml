@@ -3,14 +3,7 @@ notifications:
 
 language: generic
 
-# Node.js requires GCC 4.8.
-sudo: required
-dist: trusty
-
 env: ROOTFS="$TRAVIS_BUILD_DIR/product/rootfs.tar.xz" PRODUCT=product
-
-branches:
-  except: /^product/
 
 before_script:
   - |
@@ -23,8 +16,8 @@ before_script:
 
 script:
   - ./nano build image
-  - keep-alive &&
-    ./nano build rootfs 2>~/error.log > >(tee ~/build.log | grep '^\S*>>>\s')
+  - keep-alive
+  - ./nano build rootfs 2>~/error.log > >(tee ~/build.log | grep '^\S*>>>\s')
   - kill $! # keep-alive
   - ./nano pull rootfs
 
@@ -52,16 +45,6 @@ after_failure:
   - tail -30 ~/build.log
 
 after_success:
-  # Decrypt Git credentials file.
-  - |
-    (
-      for var in "${!encrypted_@}"; do
-        [[ $var = *_key ]] && key=${!var}
-        [[ $var = *_iv ]] && iv=${!var}
-      done
-      openssl aes-256-cbc -K "$key" -iv "$iv" -in .git-credentials.enc -out ~/.git-credentials -d
-    )
-
   # Work in new directory.
   - mkdir -v newproduct && cd $_
 
@@ -72,6 +55,7 @@ after_success:
     git config user.email bilge+travis@scriptfusion.com
     git config credential.helper store
     git remote add origin https://github.com/"$TRAVIS_REPO_SLUG"
+    echo "$GIT_CREDENTIALS" > ~/.git-credentials
 
   # Pull the most recent commit.
   - git pull --depth=1 origin "${branch=product/"$TRAVIS_BRANCH"}"
