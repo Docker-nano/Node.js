@@ -1,8 +1,0 @@
-+++ package/nodejs/nodejs.hash
-@@ -3,3 +3,6 @@
-
- # From upstream URL: http://nodejs.org/dist/v6.7.0/SHASUMS256.txt
- sha256  ceb028324aab1ee8c7ea6a62026f036f3ea71f5ef5212593d0f833f999dd3be5  node-v6.7.0.tar.xz
-+
-+# From upstream URL: http://nodejs.org/dist/v6.14.4/SHASUMS256.txt
-+sha256  9a4bfc99787f8bdb07d5ae8b1f00ec3757e7b09c99d11f0e8a5e9a16a134ec0f  node-v6.14.4.tar.xz
