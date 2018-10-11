@@ -1,0 +1,78 @@
+variables:
+  rootfs: $(Build.SourcesDirectory)/product/rootfs.tar.xz
+  product: product
+
+steps:
+- script: ./nano build image
+  displayName: Build Buildroot container
+
+- script: ./nano build rootfs
+  displayName: Build Node.js
+
+- script: ./nano pull rootfs && [[ -r $ROOTFS ]]
+  displayName: Pull rootfs
+
+- script: '[[ $(tar tf "$ROOTFS" | head -1) = ./ ]]'
+  displayName: Test rootfs begins with root entry
+
+- script: (( $(tar tf "$ROOTFS" | grep -Fxce ./usr/bin/node -e ./usr/bin/npm) == 2 ))
+  displayName: Test rootfs contains Node binary
+
+- script: docker build -t "$PRODUCT" product
+  displayName: Import product image
+
+- script: |
+    mb=$(($(docker inspect -f '{{.Size}}' "$PRODUCT") / 1000000))
+    echo Nano image size: ${mb}MB.
+    ((mb)) && echo "##vso[task.setvariable variable=image size]$mb"
+  displayName: Calculate image size
+
+- script: '[[ $(docker run --rm "$PRODUCT" node -e ''console.log("foo")'') = foo ]]'
+  displayName: Test Node
+
+- script: |
+    version=$(docker run --rm "$PRODUCT" node -v)
+    echo Node.js version: $version
+    [[ $version ]] && echo "##vso[task.setvariable variable=node version]$version"
+  displayName: Export Node version
+
+- script: |
+    version=$(docker run --rm "$PRODUCT" npm -v)
+    echo npm version: $version
+    [[ $version ]] && echo "##vso[task.setvariable variable=npm version]$version"
+  displayName: Export npm version
+
+- script: |
+    wget -Otar https://github.com/cbroglie/mustache/releases/download/v1.0.1/mustache_1.0.1_linux_amd64.tar.gz
+    tar xvf tar mustache
+    [[ -x mustache ]]
+  displayName: Install mustache
+
+- script: |
+    echo "${yaml=
+        size: $IMAGE_SIZE
+        node version: $NODE_VERSION
+        npm version: $NPM_VERSION
+    }"
+
+    [[ $yaml ]] && echo > product/README.md "$(./mustache product/README.md <<<"$yaml")"
+  displayName: Template product readme
+
+- script: |
+    set -v
+
+    git init
+    git config user.name Azure
+    git config user.email bilge+azure-bot@scriptfusion.com
+    git config credential.helper store
+    git remote add origin $(Build.Repository.Uri)
+    echo '$(GIT_CREDENTIALS)' > ~/.git-credentials
+
+    git pull --depth=1 origin "${branch=product/$(Build.SourceBranchName)}"
+
+    cp -flv '$(Build.SourcesDirectory)'/product/* .
+
+    git add .
+    git commit -m 'Built product from $(Build.SourceVersion).' && git push origin HEAD:"$branch"
+  displayName: Push product
+  workingDirectory: $(Build.StagingDirectory)
